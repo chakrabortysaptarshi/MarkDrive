@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Bootstrap Example</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="design.css">
+  <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>-->
+  <script src ="jquery-3.1.1.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+  <script type ="text/javascript" src="bootpeg.js"></script>
+  <script src="Highcharts-5.0.5/code/highcharts.js"></script>
+  <script src="Highcharts-5.0.5/code/modules/drilldown.js"></script>
+  <script src="Highcharts-5.0.5/code/modules/data.js"></script>
+  <!--<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="https://code.highcharts.com/modules/drilldown.js"></script>
+	<script src="https://code.highcharts.com/modules/data.js"></script>-->
+  <style>
+  .carousel-inner > .item > img,
+  .carousel-inner > .item > a > img {
+      margin: auto;
+	  display: block;
+  }
+  </style>
+  <script>
+  $(document).ready(function(e){
+    $('.search-panel .dropdown-menu').find('a').click(function(e) {
+		e.preventDefault();
+		var param = $(this).attr("href").replace("#","");
+		var concept = $(this).text();
+		console.log(param, concept)
+		$('.search-panel span#search_concept').text(concept);
+		$('.input-group #search_param').val(param);
+	});
+});
+
+function loggedin() {
+	$(".tabcontainer").show();
+	//$("#loginnamedisplay").show();
+	if(sessionStorage.getItem("name") != "admin") {
+		$("#dashboardtab").remove();
+	}
+	//$("#dashboardtab").show();
+	$("#manageuserstab").hide();
+	$("#logincontainer").hide();
+	$("#carouselcontainer").hide();
+	$("#loginnamedisplay").show();
+	$("#contentpage").show();
+}
+
+function loggedout() {
+	if(sessionStorage.getItem("name") == "admin")
+		$("#dashboardtab").remove();
+	$("#contentpage").hide();
+	$(".tabcontainer").hide();
+	
+	$("#manageuserstab").hide();
+	$("#logincontainer").show();
+	$("#carouselcontainer").show();
+	$("#loginnamedisplay").hide();
+	$("#loginnamedisplay").empty();
+}
+
+$(document).ready(function(e){
+	if(sessionStorage.getItem("name") == null) {
+		loggedout();
+	} else {
+		getMyContent();
+		loggedin();
+		var loggedname= "Welcome "+ sessionStorage.getItem("name")+ " <a href='#' id='logoutlinkid' onClick='logoutClick()'>Logout</a>";
+		$("#loginnamedisplay").append(loggedname);
+		
+	}
+    console.log("Website Loaded");
+});
+
+function signinClick() {
+	var json = "[{\"name\":\""+ $("#signinusername").val() + "\",\"password\":\""+$("#signinpassword").val()+"\"}]";
+	var signinurl = 'http://localhost:8080/group11project/rest/auth/signin';
+	$.ajax({
+		url: signinurl,
+		type: 'POST',
+		data: json,
+		contentType: "application/json",
+		async:false,
+		success: function (response) {
+			sessionStorage.setItem("name",$("#signinusername").val());
+			loggedin();
+			var loggedname= "Welcome "+ sessionStorage.getItem("name")+ " <a href='#' id='logoutlinkid' onClick='logoutClick()'>Logout</a>";
+			$("#loginnamedisplay").append(loggedname);
+			getMyContent();
+			
+		}, error: function() {
+			alert("Invalid username or password");
+		}
+	});
+}
+
+function logoutClick(){
+	loggedout();
+	sessionStorage.removeItem("name");
+	$("#searchResult").empty();
+	window.location.href = 'http://localhost:8080/group11project/home.html';
+}
+
+function deleteButtonClick(id){
+	var deleteurl = 'http://localhost:8080/group11project/rest/file/delete/'+sessionStorage.getItem("name")+'?file='+id;
+    deleteurl = encodeURI(deleteurl);
+	$.ajax({
+        url: deleteurl,
+        type: "DELETE",
+        success: function(){
+			getMyContent();
+        }, error:function(){
+			alert("Error while deleting the file");
+		}
+        });
+}
+
+
+function lastversionButtonClick(id) {
+	var downloadUrl = "http://localhost:8080/group11project/rest/file/lastversion?file="+id;
+    var downloadSaveUrl = "http://localhost:8080/group11project/rest/file/lastversion/download?file="+id;
+	downloadUrl = encodeURI(downloadUrl);
+    $.ajax({
+        url: downloadUrl,
+        type: "GET",
+        contentType : "application/octet-stream",
+        success: function(){
+            window.location.href = downloadSaveUrl;
+        }
+        });
+}
+
+function downloadButtonClick(id) {
+  var downloadUrl = "http://localhost:8080/group11project/rest/file/download/"+sessionStorage.getItem("name")+"?file="+id;
+  var downloadSaveUrl = "http://localhost:8080/group11project/rest/file/download/save/?file="+id;
+  downloadUrl = encodeURI(downloadUrl);
+  $.ajax({
+        url: downloadUrl,
+        type: "GET",
+        contentType : "application/octet-stream",
+        success: function(){
+            window.location.href = downloadSaveUrl;
+        }
+        });
+}
+
+function shareButtonClick(id) {
+	console.log(id);
+	$("#shared1").empty();
+	$("#shared1").append("&nbsp &nbsp Changing permission for <label id='divshare'>"+id+"</label>");
+	var users;
+	var getuserurl = "http://localhost:8080/group11project/rest/auth/getuser/"+sessionStorage.getItem("name");
+	$.ajax({
+        url: getuserurl,
+        type: "GET",
+        contentType : "plain/text",
+		async:false,
+        success: function(data){
+			console.log(data);
+			users = data;
+        }, 
+		error: function (textStatus, errorThrown) {
+			error = true;
+		}
+    });
+	
+	var userdata = users.split(',');
+	for (i = 0; i < userdata.length; i++) {
+		var radioBtn = $(""+
+		"<div class='radio col-md-10 sharemodalrow'><label class='checkbox-inline'><input type='checkbox' id='shareCheckbox' value="+userdata[i]+">"+userdata[i]+" &nbsp &nbsp</label><label>&nbsp &nbsp&nbsp &nbsp<input type='radio' name="+userdata[i]+" value='1'>Allow</label>"+
+		"<label>&nbsp &nbsp&nbsp &nbsp<input type='radio' name="+userdata[i]+" value='0'>Deny</label></div>");
+		radioBtn.appendTo('#shared1');
+	}
+}
+
+function getMyContent() {
+	var error = false;
+	$("#myimageloading").show();
+	$("#myContent").empty();
+	var searchurl = "http://localhost:8080/group11project/rest/search/"+sessionStorage.getItem("name")+"?category=" + sessionStorage.getItem("name");
+	var searchData = "";
+		$.ajax({
+        url: searchurl,
+        type: "GET",
+        contentType : "text/plain",
+		async:false,
+        success: function(data){
+			$("#myimageloading").hide();
+            searchData = data;
+			console.log(data);
+        }, 
+		error: function (textStatus, errorThrown) {
+			$("#myimageloading").hide();
+			error = true;
+		}
+        });
+		if(!error) {
+		var searchHits = searchData.split(',');
+		console.log(searchHits.length + searchHits);
+		$("#myContent").append("<p> &nbsp &nbsp Total "+ searchHits.length + " document(s) retrieved</p><br>");
+		var searchedResultContent;
+		for(var i=0; i<searchHits.length ;i++) {
+			if(i%10 === 0) {
+				var divid = 'mycontentresult'+ Math.floor(i/10);
+				if((Math.floor(i/10)).toString() == 0) 
+					searchedResultContent = "<div id="+divid+">";
+				else 
+					searchedResultContent = "<div style='display:none' id="+divid+">";
+			}
+			var uName = searchHits[i].substring(0,searchHits[i].lastIndexOf("/"));
+			var fileName = searchHits[i].substring(searchHits[i].lastIndexOf("/")+1,searchHits[i].length);
+			searchedResultContent += "<div class='row contentcontainer'><div class='col-md-11 mycolumncontent'><div style='float:left'>" +fileName+
+				"<br><p id='hashtag' > Uploaded By:"+ uName+"</p></div><div style='float:right'>"+
+				"<input class='btn btn-primary pull-right deletebutton' type='submit' value='Delete' id="+searchHits[i]+" onClick='deleteButtonClick(this.id)'>"+
+				"<input class='btn btn-primary pull-right historyBtn prevverbutton' type='submit' value='Previous Version' id="+searchHits[i]+" onClick='lastversionButtonClick(this.id)'>"+
+				"<input class='btn btn-primary pull-right downloadBtn' type='submit' value='Share' id="+searchHits[i]+" data-toggle='modal' data-target='#sharemodal' onclick='shareButtonClick(this.id)'>"+
+				"<input class='btn btn-primary pull-right downloadBtn' type='submit' value='Download' id="+searchHits[i]+" onClick='downloadButtonClick(this.id)'></div></div></div>";
+
+			if((i+1)%10 === 0 && (1+i) != searchHits.length)   {
+				searchedResultContent +="</div>";
+				$("#myContent").append(searchedResultContent);
+			}
+		}
+		searchedResultContent +="</div>";
+		$("#myContent").append(searchedResultContent);
+		var maxVis;
+		if(Math.ceil(searchHits.length/10) > 14)
+			maxVis = 15;
+		else
+			maxVis = Math.ceil(searchHits.length/10);
+		if(maxVis == 1)
+			$("#markdrivepaginator").hide();
+		else {
+			$("#markdrivemycontentpaginator").bootpag({total: Math.ceil(searchHits.length/10),page:1, maxVisible: maxVis});
+			$("#markdrivemycontentpaginator").show();
+		}
+	}
+}
+
+function onclickshare() {
+	console.log($("#divshare").text());
+	var postdata ="";
+	var val = [];
+    $(':checkbox:checked').each(function(i){
+        val[i] = $(this).val();
+		console.log(val[i] +"\t"+ $("input[name="+val[i]+"]:checked").val());
+		postdata += val[i]+','+$("input[name="+val[i]+"]:checked").val()+';';
+    });
+	postdata = postdata.substring(0, postdata.lastIndexOf(';'));
+	console.log(postdata);
+	var permissionchangeurl = "http://localhost:8080/group11project/rest/file/permission?file="+$("#divshare").text();
+	
+	$.ajax({
+		url: permissionchangeurl,
+		type: 'POST',
+		data: postdata,
+		contentType:"plain/text",
+		processData: false,
+		success: function (response) {
+			alert("Document permission modified successfully.");
+		}
+	});
+	
+	
+}
+
+function searchButtonClick() {
+		var error = false;
+		 $("#imageloading").show();
+		$("#searchResult").empty();
+		var searchurl;
+		if($('#search_param').val() == "equal") 
+			searchurl = "http://localhost:8080/group11project/rest/search/"+sessionStorage.getItem("name")+"?query=" + $('#searchbox').val();
+		else if ($('#search_param').val() == "contains")
+			searchurl = "http://localhost:8080/group11project/rest/search/"+sessionStorage.getItem("name")+"?regexquery=" + $('#searchbox').val();
+		else
+			searchurl = "http://localhost:8080/group11project/rest/search/"+sessionStorage.getItem("name")+"?category=" + $('#searchbox').val();
+		var searchData = "";
+		$.ajax({
+        url: searchurl,
+        type: "GET",
+        contentType : "text/plain",
+		async:false,
+        success: function(data){
+			$("#imageloading").hide();
+            searchData = data;
+        }, 
+		error: function (textStatus, errorThrown) {
+			$("#imageloading").hide();
+			error = true;
+		}
+        });
+		if(!error) {
+		var searchHits = searchData.split(',');
+		console.log(searchHits.length + searchHits);
+		$("#searchResult").append("<p> &nbsp &nbsp &nbsp &nbsp&nbsp &nbsp&nbsp &nbsp&nbsp &nbsp&nbsp &nbsp &nbsp &nbsp&nbsp &nbsp Total "+ searchHits.length + " document(s) retrieved</p><br>");
+		var searchedResultContent;
+		for(var i=0; i<searchHits.length ;i++) {
+			if(i%10 === 0) {
+				var divid = 'search'+ Math.floor(i/10);
+				if((Math.floor(i/10)).toString() == 0) 
+					searchedResultContent = "<div id="+divid+">";
+				else 
+					searchedResultContent = "<div style='display:none' id="+divid+">";
+			}
+			var uName = searchHits[i].substring(0,searchHits[i].lastIndexOf("/"));
+			var fileName = searchHits[i].substring(searchHits[i].lastIndexOf("/")+1,searchHits[i].length);
+			searchedResultContent += "<div class='row contentcontainer'><div class='col-md-11 columncontent'><div style='float:left'>" +fileName+
+				"<br><p id='hashtag' > Uploaded By:"+ uName +"</p></div><div style='float:right'><input class='btn btn-primary pull-right historyBtn prevverbutton' type='submit' value='Previous Version' id="+searchHits[i]+" onClick='lastversionButtonClick(this.id)'>"+
+				"<input class='btn btn-primary pull-right downloadBtn' type='submit' value='Download' id="+searchHits[i]+" onClick='downloadButtonClick(this.id)'></div></div></div>";
+
+			if((i+1)%10 === 0 && (1+i) != searchHits.length)   {
+				searchedResultContent +="</div>";
+				$("#searchResult").append(searchedResultContent);
+			}
+		}
+		searchedResultContent +="</div>";
+		$("#searchResult").append(searchedResultContent);
+		var maxVis;
+		if(Math.ceil(searchHits.length/10) > 14)
+			maxVis = 15;
+		else
+			maxVis = Math.ceil(searchHits.length/10);
+		
+		if(maxVis == 1)
+			$("#markdrivepaginator").hide();
+		else {
+			$("#markdrivepaginator").bootpag({total: Math.ceil(searchHits.length/10),page:1, maxVisible: maxVis});
+			$("#markdrivepaginator").show();
+		}
+	}
+		
+}
+
+function uploadClick() {
+	var uploadurl = 'http://localhost:8080/group11project/rest/file/upload/'+sessionStorage.getItem("name")+'?category=';
+	var categoryval = $.trim($("textarea").val());
+	uploadurl = uploadurl + categoryval;
+	var documentData = new FormData();
+	documentData.append('file', $('input#file.findDocumentOnboarding')[0].files[0]);
+	$.ajax({
+		url: uploadurl,
+		type: 'POST',
+		data: documentData,
+		cache: false,
+		contentType: false,
+		processData: false,
+		success: function (response) {
+			alert("Document uploaded successfully.");
+		}
+	});
+	return false;
+}
+
+function getMostDownload(){
+	$("#mostdownloadResult").empty();
+	var mostdownloads;
+	var getMostDownloadurl = 'http://localhost:8080/group11project/rest/stat/download';
+	$.ajax({
+        url: getMostDownloadurl,
+        type: "GET",
+        contentType : "text/plain",
+		async:false,
+        success: function(data){
+            mostdownloads = data;
+        }, 
+		error: function (textStatus, errorThrown) {
+			alert("Failed to fetch data");
+		}
+        });
+		console.log(mostdownloads);
+		var mostdownloadHits = mostdownloads.split(',');
+		console.log(mostdownloadHits.length + mostdownloadHits);
+		for(var i=0; i<mostdownloadHits.length ;i++) {
+			var uName = mostdownloadHits[i].substring(0,mostdownloadHits[i].lastIndexOf("/"));
+			var fileName = mostdownloadHits[i].substring(mostdownloadHits[i].lastIndexOf("/")+1,mostdownloadHits[i].length);
+			var mostdownloadResultContent = "<div class='row contentcontainer'><div class='col-md-11 columncontent'><div style='float:left'>" +fileName+
+			"<br><p id='hashtag' > Uploaded By:"+uName +"</p></div><div style='float:right'>"+
+			"<input class='btn btn-primary pull-right downloadBtn' type='submit' value='Download' id="+mostdownloadHits[i]+" onClick='downloadButtonClick(this.id)'></div></div></div>";
+			
+			$("#mostdownloadResult").append(mostdownloadResultContent);
+		}
+}
+
+function getRecentUpload(){
+	$("#recentuploadResult").empty();
+	var recentuploads;
+	var recentuploadsurl = 'http://localhost:8080/group11project/rest/stat/upload';
+	$.ajax({
+        url: recentuploadsurl,
+        type: "GET",
+        contentType : "text/plain",
+		async:false,
+        success: function(data){
+            recentuploads = data;
+        }, 
+		error: function (textStatus, errorThrown) {
+			alert("Failed to fetch data");
+		}
+        });
+		console.log(recentuploads);
+		var recentuploadsHits = recentuploads.split(',');
+		console.log(recentuploadsHits.length + recentuploadsHits);
+		for(var i=0; i<recentuploadsHits.length ;i++) {
+			var uName = recentuploadsHits[i].substring(0,recentuploadsHits[i].lastIndexOf("/"));
+			var fileName = recentuploadsHits[i].substring(recentuploadsHits[i].lastIndexOf("/")+1,recentuploadsHits[i].length);
+			var recentuploadResultContent = "<div class='row contentcontainer'><div class='col-md-11 columncontent'><div style='float:left'>" +fileName+
+			"<br><p id='hashtag' > Uploaded By:"+ uName+"</p></div><div style='float:right'>"+
+			"<input class='btn btn-primary pull-right downloadBtn' type='submit' value='Download' id="+recentuploadsHits[i]+" onClick='downloadButtonClick(this.id)'></div></div></div>";
+			$("#recentuploadResult").append(recentuploadResultContent);
+		}
+}
+
+function dashboarddataget() {
+var chart;
+var d;
+var downloadUrl = "http://localhost:8080/group11project/rest/dashboard";
+	var responsedata;
+    $.ajax({
+        url: downloadUrl,
+        type: "GET",
+        contentType : "application/json",
+		async:false,
+        success: function(data){
+      		d=data;
+        }
+        });
+
+	chart = Highcharts.chart('chartone', {
+        chart: {
+            type: 'pie',
+			backgroundColor: null
+        },
+        title: {
+            text: 'Different File types'
+        },
+        subtitle: {
+            text: 'Click the slices to view the particular file type uploaded by different users.'
+        },
+		credits:false,
+        plotOptions: {
+            series: {
+                dataLabels: {
+                    enabled: true,
+                    format: '{point.name}: {point.y}'
+                }
+            }
+        },
+
+        tooltip: {
+            headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+            pointFormat: '<span style="color:{point.color}">{point.name}</span>: <b>{point.y:.2f}</b> of total<br/>'
+        },
+        series: [{
+            name: 'File Types',
+            colorByPoint: true,
+            data: d.ftype.parent
+        }],
+        drilldown: d.ftype.child
+    });
+    
+    	chart1 = Highcharts.chart('charttwo', {
+        chart: {
+            type: 'pie',
+			backgroundColor: null
+        },
+        title: {
+            text: 'Different Users'
+        },
+        subtitle: {
+            text: 'Click the slices to view the different file types uploaded by the particular user.'
+        },
+		credits:false,
+		
+        plotOptions: {
+            series: {
+                dataLabels: {
+                    enabled: true,
+                    format: '{point.name}: {point.y}'
+                }
+            }
+        },
+
+        tooltip: {
+            headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+            pointFormat: '<span style="color:{point.color}">{point.name}</span>: <b>{point.y:.2f}</b> of total<br/>'
+        },
+        series: [{
+            name: 'Users',
+            colorByPoint: true,
+            data: d.uname.parent
+        }],
+        drilldown: d.uname.child
+    });
+}
+
+function getFacets() {
+	$("#facetresult").empty();
+	console.log("get Facets");
+	var recentuploads;
+	var recentuploadsurl = 'http://localhost:8080/group11project/rest/stat/facets';
+	$.ajax({
+        url: recentuploadsurl,
+        type: "GET",
+        contentType : "text/plain",
+		async:false,
+        success: function(data){
+            recentuploads = data;
+        }, 
+		error: function (textStatus, errorThrown) {
+			alert("Failed to fetch data");
+		}
+        });
+		console.log(recentuploads);
+		var totalFacets = recentuploads.split(';');
+		var info = "<p style='color:blue;font-weight: bold' > &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp Number of different employee postion information</p><br>";
+		$("#facetresult").append(info);
+		for(var i=0; i<totalFacets.length ;i++) {
+			var facet = totalFacets[i].split(',');
+			var recentuploadResultContent = "<div class='row contentcontainer'><div class='col-md-11 columncontent'><div style='float:left;font-size:16px'>" +facet[0]+
+			"<p style='font-size:12px'> Facet Occurence is 1 </p> </div><div style='float:right;color:blue;font-weight: bold'>"+facet[1]+"</div></div></div>";
+			$("#facetresult").append(recentuploadResultContent);
+		}
+		
+}
+  
+  </script>
+</head>
+<body>
+
+<!-- Header containg the MarkDrive Tag and small catch phrase -->
+<div class="jumbotron vertical-center">
+	<div class="container text-center">
+	<h1 id="markdriveheader" style="margin-bottom:0px">MarkDrive</h1>
+	<h3 id="markdriveheadertagline" style="margin-bottom:0px;margin top:0px">&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp <i>Storage on the go...</i></h3>
+	<div id="loginnamedisplay"></div>
+    </div>
+</div>
+
+<div id="logincontainer" >
+<input class="btn btn-primary" type="submit" value="Sign in" data-toggle="modal" data-target="#signinmodal">
+</div>
+
+<!-- Modal for sign in-->
+  <div class="modal fade" id="signinmodal" role="dialog">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">x</button>
+          <h4 class="modal-title">Sign in</h4>
+        </div>
+
+		<div class="signupform-group">
+			<label for="email" class="cols-sm-3 control-label">Username</label>
+				<div class="cols-sm-3">
+					<div class="input-group">
+					<span class="input-group-addon"><span class="glyphicon glyphicon-user"></span></span>
+					<input type="text" class="form-control" name="email" id="signinusername"  placeholder="Enter your username"/>
+					</div>
+				</div>
+		</div>
+		<div class="signupform-group">
+			<label for="password" class="cols-sm-3 control-label">Password</label>
+				<div class="cols-sm-3">
+					<div class="input-group">
+					<span class="input-group-addon"><span class="glyphicon glyphicon-lock"></span></span>
+					<input type="password" class="form-control" name="password" id="signinpassword"  placeholder="Enter your password"/>
+					</div>
+				</div>
+		</div>
+		
+		<div class="signupform-group">
+		<br>
+			<button type="button" class="btn btn-primary btn-lg btn-block login-button" data-dismiss="modal" onClick="signinClick()">Sign in</button>
+		</div>     
+      </div>
+      
+    </div>
+  </div>
+
+  
+  <!-- the following container is used to contain the carousel and manipulate the functionality of the carousel container -->
+<div class="container" id="carouselcontainer">
+  <br>
+  <br>
+  <br>
+  <br>
+  <div id="myCarousel" class="carousel slide" data-ride="carousel">
+    <!-- Indicators -->
+    <ol class="carousel-indicators">
+      <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+      <li data-target="#myCarousel" data-slide-to="1"></li>
+      <li data-target="#myCarousel" data-slide-to="2"></li>
+      <li data-target="#myCarousel" data-slide-to="3"></li>
+    </ol>
+
+    <!-- Wrapper for slides -->
+    <div class="carousel-inner" role="listbox">
+      <div class="item active">
+        <img src="1.png" alt="Chania" width="300" height="200">
+      </div>
+
+      <div class="item">
+        <img src="2.png" alt="Chania" width="300" height="200">
+      </div>
+    
+      <div class="item">
+        <img src="3.jpg" alt="Flower" width="300" height="200">
+      </div>
+
+      <div class="item">
+        <img src="4.png" alt="Flower" width="300" height="200">
+      </div>
+	  
+	  <div class="item">
+        <img src="5.png" alt="Flower" width="300" height="200">
+      </div>
+    </div>
+
+    <!-- Left and right controls -->
+    <a class="left carousel-control" href="#myCarousel" role="button" data-slide="prev">
+      <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+      <span class="sr-only">Previous</span>
+    </a>
+    <a class="right carousel-control" href="#myCarousel" role="button" data-slide="next">
+      <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+      <span class="sr-only">Next</span>
+    </a>
+  </div>
+</div>
+  
+<div id="tabbackgroundcolor" class="tabcontainer">
+  <ul class="nav nav-pills nav-justified" id="tabdiv">
+    <li class="active"><a data-toggle="pill" href="#home" onclick="getMyContent()">Home</a></li>
+    <li class="dropdown">
+    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Document
+    <span class="caret"></span></a>
+    <ul class="dropdown-menu">
+      <li><a data-toggle="pill" href="#upload">Upload</a></li>
+    </ul>
+  </li>
+    <li><a data-toggle="pill" href="#searchdiv">Search</a></li>
+	<li class="dropdown" id="statisticstab">
+    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Statistics
+    <span class="caret"></span></a>
+    <ul class="dropdown-menu">
+      <li><a data-toggle="pill" href="#mostdownloads" onClick="getMostDownload()">Most Downloads</a></li>
+	  <li><a data-toggle="pill" href="#recentuploads" onClick="getRecentUpload()">Recent Uploads</a></li>
+	  <li><a data-toggle="pill" href="#facetview" onClick="getFacets()">View Facets and element frequency</a></li>
+    </ul>
+	</li>
+	<li><a data-toggle="pill" href="#dashboardcontent" id="dashboardtab" onclick="dashboarddataget()" >Dashboard</a></li>
+	<!--<li><a data-toggle="pill" href="#" id="manageuserstab" >Manage users</a></li>-->
+  </ul>
+ </div> 
+<div class="tab-content" id="contentpage">
+  
+    <!-- the homepage which will be visible after logging in -->
+    <div id="home" class="tab-pane fade in active">
+	<div class="row contentcontainer">
+      	<div class ="text-center">
+			<h3>My Content</h3>
+		</div>
+		<img src="loading.gif" id="myimageloading" style="display:none" />
+		<br><br>
+	
+	 <div id="myContent" class="tab-pane fade active in"> </div>
+	 <div id="markdrivemycontentpaginator" style="display:none" class="col-md-11 markdrivepaginator text-center vertical-center"></div>
+    <script type="text/javascript">
+        $('#markdrivemycontentpaginator').bootpag({
+      total: 1,
+	}).on('page', function(event, num){
+			var divid = 'mycontentresult'+(num-1);
+			for(var i=0;i<30;i++) {
+				var tobehiidendivid = 'mycontentresult'+i;
+				if($("#"+tobehiidendivid).length > 0)
+					$("#"+tobehiidendivid).hide();
+				else
+					break;
+			}
+			$("#"+divid).show();
+        });
+    </script>
+    </div>
+	</div>
+	
+	
+	<div class="modal fade" id="sharemodal" role="dialog">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal">x</button>
+			<h4 class="modal-title">Share with ....</h4>
+        </div>
+        <div class="row">
+		<div id="shared1" class = "sharemodalrow"></div></div>
+		
+		<div class="signupform-group">
+			<br>
+			<button type="button" class="btn btn-primary btn-lg btn-block" onclick="onclickshare()" data-dismiss="modal">Submit</button>
+		</div>     
+      </div>
+      
+    </div>
+  </div>
+	
+	<!-- document upload area design -->
+    <div id="upload" class="tab-pane fade">
+	<div class ="text-center">
+      <h3>Upload Document</h3>
+	</div>
+    <br><br>	
+	<div id="uploadarea">
+	<div class="signform-group">
+			<label for="uploadfile" class="cols-sm-3 control-label">Select the file</label>
+				<div class="cols-sm-3">
+					<div class="input-group">
+					<span class="input-group-addon"><span class="glyphicon glyphicon-cloud-upload"></span></span>
+					<input type="file" class="form-control findDocumentOnboarding" name="upload" id="file" placeholder="Select the file">
+					</div>
+			</div>
+	</div>
+	  <br><br>
+	  <label for="uploadfile" class="cols-sm-3 control-label">Enter the keywords</label>
+	  <p class="cols-sm-3 control-label"></p> <textarea rows="3" id="uploadkeyword"></textarea> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	  <input class="btn btn-primary uploadbtn" type="submit" value="Upload" id="uploadbtn" onclick ="uploadClick()">
+    </div>
+	</div>
+ 
+
+    <!--document search page design-->
+    <div id="searchdiv" class="tab-pane fade">
+    <div class="row contentcontainer">
+    <div class="row" id= "searchdivrow" >    
+        <div class="col-xs-8 col-xs-offset-2">
+		    <div class="input-group">
+                <div class="input-group-btn search-panel">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                    	<span id="search_concept"></span> <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu" role="menu">
+                      <li><a href="#equal">Exact match</a></li>
+                      <li><a href="#contains">Contains</a></li>
+                      <li class="divider"></li>
+                      <li><a href="#category">Keyword</a></li>
+                    </ul>
+                </div>
+                <input type="hidden" name="search_param" value="all" id="search_param">         
+                <input type="text" class="form-control" name="x" id="searchbox" placeholder="Search term...">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" type="button" id="searchButton" onclick="searchButtonClick()"><span class="glyphicon glyphicon-search"></span></button>
+                </span>
+            </div>
+			<img src="loading.gif" id="imageloading" style="display:none" />
+        </div>
+	</div>
+	<br><br>
+	
+	<div id="searchResult" class="tab-pane fade active in"> </div>
+	<div id="markdrivepaginator" style="display:none" class="row contentcontainer text-center vertical-center"></div>
+    <script type="text/javascript">
+        $('#markdrivepaginator').bootpag({
+      total: 1,
+	}).on('page', function(event, num){
+			var divid = 'search'+(num-1);
+			for(var i=0;i<30;i++) {
+				var tobehiidendivid = 'search'+i;
+				if($("#"+tobehiidendivid).length > 0)
+					$("#"+tobehiidendivid).hide();
+				else
+					break;
+			}
+			$("#"+divid).show();
+        });
+    </script>
+    </div>
+    </div>
+	
+	
+    <div id="mostdownloads" class="tab-pane fade">
+	<div class ="text-center">
+			<h3>Most downloaded documents</h3>
+			<br><br>
+		</div>
+      <div id="mostdownloadResult" class="tab-pane fade active in"> </div>
+    </div>
+	<div id="recentuploads" class="tab-pane fade">
+      <div class ="text-center">
+			<h3>Recently uploaded documents</h3>
+			<br><br>
+		</div>
+		<div id="recentuploadResult" class="tab-pane fade active in"> </div>
+    </div>
+	<div id="facetview" class="tab-pane fade">
+      <div class ="text-center">
+			<h3>View Facets and Element Frequency</h3>
+			<br><br>
+		</div>
+		<div id="facetresult" class="tab-pane fade active in"></div>
+    </div>
+	<div id="dashboardcontent" class="tab-pane fade"> 
+	<div class="row contentcontainer">
+	<br><br>
+	<div id="chartone"></div>
+	<div id="charttwo"></div>
+	</div>
+	</div>
+	
+  </div>
+</body>
+</html>

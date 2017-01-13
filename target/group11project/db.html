@@ -1,0 +1,124 @@
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script type="text/javascript" src="jquery.bootpag.js"></script>
+<script src="jquery-3.1.1.js"></script>
+<script src="http://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/drilldown.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<style>
+div#main {
+    width: 90%;
+    height: 500px;
+    background: blue;
+    margin: auto;
+    padding: 10px;
+}
+div#charttwo {
+    width: 49.8%;
+    height: 500px;
+    float: left;
+}
+div#chartone {
+	width: 49.8%;
+    height: 500px;
+	float: right;
+	}
+</style>	
+
+<script>
+var chart;
+function loginClick() {
+
+var d;
+var downloadUrl = "http://localhost:8080/group11project/rest/dashboard";
+	var responsedata;
+    $.ajax({
+        url: downloadUrl,
+        type: "GET",
+        contentType : "application/json",
+		async:false,
+        success: function(data){
+            //console.log(data);
+			d=data;
+			//responsedata = data.fbyExt;
+			//console.log(responsedata);
+        }
+        });
+
+	chart = Highcharts.chart('chartone', {
+        chart: {
+            type: 'pie'
+        },
+        title: {
+            text: 'Different File types'
+        },
+        subtitle: {
+            text: 'Click the slices to view file types uploaded by different users.'
+        },
+        plotOptions: {
+            series: {
+                dataLabels: {
+                    enabled: true,
+                    format: '{point.name}: {point.y}'
+                }
+            }
+        },
+
+        tooltip: {
+            headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+            pointFormat: '<span style="color:{point.color}">{point.name}</span>: <b>{point.y:.2f}</b> of total<br/>'
+        },
+        series: [{
+            name: 'File types',
+            colorByPoint: true,
+            data: d.ftype.parent
+        }],
+        drilldown: d.ftype.child
+    });
+    
+    	chart1 = Highcharts.chart('charttwo', {
+        chart: {
+            type: 'pie'
+        },
+        title: {
+            text: 'Different File types'
+        },
+        subtitle: {
+            text: 'Click the slices to view file types uploaded by different users.'
+        },
+        plotOptions: {
+            series: {
+                dataLabels: {
+                    enabled: true,
+                    format: '{point.name}: {point.y}'
+                }
+            }
+        },
+
+        tooltip: {
+            headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+            pointFormat: '<span style="color:{point.color}">{point.name}</span>: <b>{point.y:.2f}</b> of total<br/>'
+        },
+        series: [{
+            name: 'File types',
+            colorByPoint: true,
+            data: d.uname.parent
+        }],
+        drilldown: d.uname.child
+    });
+}
+
+</script>
+
+
+
+</head>
+<body>
+	<h1>File Upload with Jersey</h1>
+	<div id="chartone"></div>
+	<div id="charttwo"></div>
+	<input type="submit" value="Set It" onclick="loginClick()"/>
+	
+</body>
+</html>

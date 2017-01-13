@@ -1,0 +1,48 @@
+<html>
+<head>
+<title>jQuery Hello World</title>
+
+<script type="text/javascript" src="jquery-3.1.1.js"></script>
+
+</head>
+
+<body>
+
+<script type="text/javascript">
+
+function uploadClick() {
+
+var uploadurl = 'http://localhost:8080/group11project/rest/file/upload?category=';
+var categoryval = $.trim($("textarea").val());
+uploadurl = uploadurl + categoryval;
+
+
+var documentData = new FormData();
+documentData.append('file', $('input#file.findDocumentOnboarding')[0].files[0]);
+$.ajax({
+    url: uploadurl,
+    type: 'POST',
+    data: documentData,
+    cache: false,
+    contentType: false,
+    processData: false,
+    success: function (response) {
+        alert("Document uploaded successfully.");
+    }
+});
+
+return false;
+}
+
+</script>
+
+
+<h1>File Upload MarkLogic Example</h1>
+
+<textarea>Test Content</textarea>
+ 
+<input type="button" value="Upload document" class="uploadDocumentOnboarding" onclick ="uploadClick()">
+<input id="file" type="file" class="findDocumentOnboarding">
+
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script>
+$(document).ready(function(){
+    $("button").click(function(){
+        $.ajax({
+        url: "http://localhost:8080/RESTfulExample/rest/file1/download",
+        type: "GET",
+        contentType : "application/octet-stream",
+        success: function(){
+            window.location.href = "http://localhost:8080/RESTfulExample/rest/file1/download";
+        }
+        });
+    });
+});
+</script>
+</head>
+<body>
+
+<div id="div1"><h2>Let jQuery AJAX Change This Text</h2></div>
+
+<button>Download it</button>
+
+</body>
+</html>

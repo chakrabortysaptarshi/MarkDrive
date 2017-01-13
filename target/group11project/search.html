@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script>
+function f(id) {
+  console.log("ok" + id);
+  var downloadUrl = "http://localhost:8080/group11project/rest/file/download?file="+id;
+  var downloadSaveUrl = "http://localhost:8080/group11project/rest/file/download/save?file="+id;
+  downloadUrl = encodeURI(downloadUrl);
+  $.ajax({
+        url: downloadUrl,
+        type: "GET",
+        contentType : "application/octet-stream",
+        success: function(){
+            window.location.href = downloadSaveUrl;
+        }
+        });
+}
+function searchclick() {
+ $("#div2").empty();
+ console.log("search it: " + $('#searchbox').val());
+ var searchurl = "http://localhost:8080/group11project/rest/search?query=" + $('#searchbox').val();
+ var searchData = "";
+ $.ajax({
+        url: searchurl,
+        type: "GET",
+        contentType : "text/plain",
+		async:false,
+        success: function(data){
+            console.log(data);
+            searchData = data;
+        }, 
+		error: function (textStatus, errorThrown) {
+			console.log("true");
+		}
+        });
+  var searchHits = searchData.split(',');
+  console.log(searchHits.length + searchHits);
+  for(var i=0; i<searchHits.length ;i++) {
+    var v = "Download"; 
+    var txt = "<div style='display:flex'><div style='width:200px'>"+searchHits[i]+"</div><div> <Button id="+searchHits[i]+" onClick='f(this.id)'>"+v+"</Button></div>";
+    $("#div2").append(txt);     // Append new elements
+  }
+}
+
+function regexsearchclick() {
+ $("#div3").empty();
+ console.log("search it: " + $('#regexsearchbox').val());
+ var searchurl = "http://localhost:8080/group11project/rest/search?regexquery=" + $('#regexsearchbox').val();
+ var searchData = "";
+ $.ajax({
+        url: searchurl,
+        type: "GET",
+        contentType : "text/plain",
+		async:false,
+        success: function(data){
+            console.log(data);
+            searchData = data;
+        }, 
+		error: function (textStatus, errorThrown) {
+			console.log("true");
+		}
+        });
+  var searchHits = searchData.split(',');
+  console.log(searchHits.length + searchHits);
+  for(var i=0; i<searchHits.length ;i++) {
+    var v = "Download"; 
+    var txt = "<div style='display:flex'><div style='width:200px'>"+searchHits[i]+"</div><div> <Button id="+searchHits[i]+" onClick='f(this.id)'>"+v+"</Button></div>";
+    $("#div3").append(txt);     // Append new elements
+  }
+}
+
+function categorysearchclick() {
+ $("#div4").empty();
+ console.log("search it: " + $('#categorysearchbox').val());
+ var searchurl = "http://localhost:8080/group11project/rest/search?category=" + $('#categorysearchbox').val();
+ var searchData = "";
+ $.ajax({
+        url: searchurl,
+        type: "GET",
+        contentType : "text/plain",
+		async:false,
+        success: function(data){
+            console.log(data);
+            searchData = data;
+        }, 
+		error: function (textStatus, errorThrown) {
+			console.log("true");
+		}
+        });
+  var searchHits = searchData.split(',');
+  console.log(searchHits.length + searchHits);
+  for(var i=0; i<searchHits.length ;i++) {
+    var v = "Download"; 
+    var txt = "<div style='display:flex'><div style='width:200px'>"+searchHits[i]+"</div><div> <Button id="+searchHits[i]+" onClick='f(this.id)'>"+v+"</Button></div>";
+    $("#div4").append(txt);     // Append new elements
+  }
+}
+
+</script>
+</head>
+<body>
+
+<div><h2>Exact match searching</h2></div>
+
+<input type="text" id = "searchbox"></input>
+
+<button onclick="searchclick()">Search</button>
+
+<br><br>
+
+<div id="div2"></div>
+
+<div><h2>String contains searching</h2></div>
+
+<input type="text" id = "regexsearchbox"></input>
+
+<button onclick="regexsearchclick()">Search</button>
+
+<br><br>
+
+<div id="div3"></div>
+
+<div><h2>Metadata based searching</h2></div>
+
+<input type="text" id = "categorysearchbox"></input>
+
+<button onclick="categorysearchclick()">Search</button>
+
+<br><br>
+
+<div id="div4"></div>
+
+</body>
+</html>
